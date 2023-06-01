@@ -1,0 +1,49 @@
+---
+# tasks file for nginx
+- name: Install Nginx
+  apt:
+    pkg:
+      - nginx
+    state: latest
+    update_cache: true
+- name: Install php-fpm
+  apt:
+    pkg:
+      - php-fpm
+    state: latest
+    update_cache: true
+- name: start service php-fpm
+  service:
+    name: php8.1-fpm
+    state: started
+    enabled: yes
+- name: start service nginx
+  service:
+    name: nginx
+    state: started
+    enabled: yes
+- name: Create a directory if it does not exist
+  ansible.builtin.file:
+    path: /opt/nginx/ansible
+    state: directory
+    mode: '0755'
+- name: Copy template config
+  template:
+    src: "templates/default"
+    dest: "/etc/nginx/sites-available/default"
+    owner: root
+    group: root
+    mode: "0644"
+#  notify: restart dnsmasq
+- name: Add a line to index
+  ansible.builtin.lineinfile:
+    path: /opt/nginx/ansible/index.php
+    line: "<?php phpinfo();?>"
+    create: yes
+- name: Change NGINX root path
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/sites-available/default
+    regexp: 'root /var/www/html;'
+    insertafter: '^#root /var/www/html;'
+    line: '		root /opt/nginx/ansible;'
+  notify: restart nginx
